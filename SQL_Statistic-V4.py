@@ -255,7 +255,7 @@ try:
     date2 = datetime.datetime.now()
     czas_minuty = int((date2 - date1).total_seconds()/60)
     czas_sekundy = int((date2 - date1).total_seconds()%60)
-    czas_ms = int((date2 - date1).microseconds)%(10^6)
+    czas_ms = round((date2 - date1).microseconds/1000, 0)
     timer = [['', 'Minutes', 'Seconds', 'Millisecond'], ["Calculation time", czas_minuty, czas_sekundy, czas_ms]]
     print(tabulate(timer, headers='firstrow', tablefmt='fancy_grid'))
     plotPrint()
