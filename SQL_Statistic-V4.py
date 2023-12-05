@@ -227,6 +227,7 @@ try:
     way_1 = "Stats.db"
     way_15 = "Heat.db"
     way_2 = "X:/Heat.db"
+    way_25 = "X:/Stats.db"
     way_3 = "Test/Heat.db"
     way_4 = "r'//RASPBERRYPI._smb._tcp.local/Python3/Heat.db"
     way_41 = "r'//RASPBERRYPI._smb._tcp.local/Python3/Stats.db"
@@ -235,7 +236,7 @@ try:
     way_7 = "/Users/emsii/Downloads/Python/Stats2.db"
 
     try:
-        upload(way_4,way_15)
+        upload(way_2,way_15)
     except:
         print("\nDownlaod failed!\n")
 
@@ -248,15 +249,17 @@ try:
     connect.commit()
 
     try:
-        upload(way_1,way_41)
+        upload(way_1,way_25)
     except:
         print("\nUpload failed!\n")
 
     date2 = datetime.datetime.now()
-    czas_minuty = int((date2 - date1).total_seconds()/60)
-    czas_sekundy = int((date2 - date1).total_seconds()%60)
-    czas_ms = int((date2 - date1).microseconds)%(10^6)
-    timer = [['', 'Minutes', 'Seconds', 'Millisecond'], ["Calculation time", czas_minuty, czas_sekundy, czas_ms]]
+    time_calc = int((date2 - date1).microseconds)
+    time_us = int(time_calc%1000)
+    time_ms = int(time_calc/1000%1000)
+    time_sek = int(time_calc/1000000%60)
+    time_min = int(time_calc/60000000)
+    timer = [['', 'Minutes', 'Seconds', 'Millisecond', 'Microsecend'], ["Calculation time", time_min, time_sek, time_ms, time_us]]
     print(tabulate(timer, headers='firstrow', tablefmt='fancy_grid'))
     plotPrint()
 
