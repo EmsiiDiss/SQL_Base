@@ -5,6 +5,8 @@
 import sqlite3, shutil, datetime, traceback
 from tabulate import tabulate
 
+from tkinter import *
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -72,7 +74,7 @@ def insert_to_tab(chwila, avr, min_list, max_list, where):
     else:
         connect.execute(space, (chwila, averageXD(avr), min(min_list), max(max_list)))
 
-def reset():
+def reset_avr_list():
     global list_avr_avr, list_avr_min, list_avr_max
 
     list_avr_min = []
@@ -114,7 +116,7 @@ def calc_temp_days(data, temp, index, last_index):
     if chwila_days != here:
         insert_to_tab(chwila_days, list_days, list_days, list_days, "Days")
         insert_to_tab(chwila_days, list_avr_avr, list_avr_min, list_avr_max, "Average")
-        reset()
+        reset_avr_list()
         chwila_days = here
         list_days = []
         list_days.append(float(temp))
@@ -123,7 +125,7 @@ def calc_temp_days(data, temp, index, last_index):
         list_days.append(float(temp))
         insert_to_tab(chwila_days, list_days, list_days, list_days, "Days")
         insert_to_tab(chwila_days, list_avr_avr, list_avr_min, list_avr_max, "Average")
-        reset()
+        reset_avr_list()
 
     else:
         list_days.append(float(temp))
@@ -131,22 +133,33 @@ def calc_temp_days(data, temp, index, last_index):
 def averageXD(list):
     return round(sum(list) / len(list), 2)
 
-def calculator():
+def calculator(data_start, data_end):
     global chwila_hours, list_hours, chwila_days, list_days
-
+    print(data_start,data_end)
     list_hours = []
     list_days = []
 
     print("Starting calculation")
+    if data_end == "0" or data_end == 0:
+        cursor = conn.execute("SELECT id FROM Temperatura ORDER BY id DESC LIMIT 1")
+        for row in cursor:
+            last_index = row[0]
+    else:
+        cursor = conn.execute("SELECT id FROM Temperatura WHERE data=?", data_start)
+        for row in cursor:
+            last_index = row[0]
 
-    cursor = conn.execute("SELECT id FROM Temperatura ORDER BY id DESC LIMIT 1")
-    for row in cursor:
-        last_index = row[0]
+    if data_start == "0" or data_end == 0:
+        cursor = conn.execute("SELECT id, godzina, data FROM temperatura WHERE id=1")
+        for row in cursor:
+            chwila_hours = datetime.datetime(int(row[2][0:4]), int(row[2][5:7]), int(row[2][8:10]), int(row[1][0:2]))
+            chwila_days = datetime.date(int(row[2][0:4]), int(row[2][5:7]), int(row[2][8:10]))
+    else:
+        cursor = conn.execute("SELECT id, godzina, data FROM temperatura WHERE data=?", data_start)
+        for row in cursor:
+            chwila_hours = datetime.datetime(int(row[2][0:4]), int(row[2][5:7]), int(row[2][8:10]), int(row[1][0:2]))
+            chwila_days = datetime.date(int(row[2][0:4]), int(row[2][5:7]), int(row[2][8:10]))
 
-    cursor = conn.execute("SELECT id, godzina, data FROM temperatura WHERE id=1")
-    for row in cursor:
-        chwila_hours = datetime.datetime(int(row[2][0:4]), int(row[2][5:7]), int(row[2][8:10]), int(row[1][0:2]))
-        chwila_days = datetime.date(int(row[2][0:4]), int(row[2][5:7]), int(row[2][8:10]))
 
     cursor = conn.execute("SELECT id, godzina, data, temp_dot FROM temperatura")
     for row in cursor:
@@ -196,6 +209,7 @@ def trend_example_plot(ax, time, value, what):
     ax.set_xlabel('Data', fontsize=8)
     ax.set_ylabel('Temp [*C]', fontsize=8)
     ax.tick_params(axis='x', labelrotation = 45)
+
 def plotPrint():
     linreg()
 
@@ -223,6 +237,12 @@ def plotPrint():
     plt.show()
 
 try:
+    if input("0. If printing all ender 0\n1. Ender 1 to calculation okresion \n") == (0 or "0"):
+        data_start = 0
+        data_end = 0
+    else:
+        data_start = input("Enter start date: YYYY-MM-DD\n")
+        data_end = input("Enter end date: YYYY-MM-DD\n")
     date1 = datetime.datetime.now()
     way_1 = "Stats.db"
     way_15 = "Heat.db"
@@ -242,8 +262,8 @@ try:
 
     connect(way_15, way_1)
     tablica()
-    reset()
-    calculator()
+    reset_avr_list()
+    calculator(data_start, data_end)
 
     conn.commit()
     connect.commit()
