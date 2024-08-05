@@ -50,6 +50,7 @@ def tablica():
                 TEMP_MIN varchar(250) NOT NULL,
                 TEMP_MAX varchar(250) NOT NULL
             )""")
+        
         connect.execute("""
             CREATE TABLE IF NOT EXISTS Average (
                 id INTEGER PRIMARY KEY ASC,
@@ -66,11 +67,11 @@ def tablica():
         raise SystemExit(0)
 
 def insert_to_tab(chwila, avr, min_list, max_list, where):
-    space = str("INSERT INTO " + where + " VALUES(NULL, ?, ?, ?, ?);")
+    place = str("INSERT INTO " + where + " VALUES(NULL, ?, ?, ?, ?);")
     if where == "Average":
-        connect.execute(space, (chwila, averageXD(avr), averageXD(min_list), averageXD(max_list)))
+        connect.execute(place, (chwila, averageXD(avr), averageXD(min_list), averageXD(max_list)))
     else:
-        connect.execute(space, (chwila, averageXD(avr), min(min_list), max(max_list)))
+        connect.execute(place, (chwila, averageXD(avr), min(min_list), max(max_list)))
 
 def reset():
     global list_avr_avr, list_avr_min, list_avr_max
@@ -166,6 +167,7 @@ def linreg():
         y1.append(float(row[1]))
         y2.append(float(row[2]))
         y3.append(float(row[3]))
+
 def plot_trend(x_num, xd):
     return np.polyfit(x_num, xd, 1)
 
@@ -196,6 +198,7 @@ def trend_example_plot(ax, time, value, what):
     ax.set_xlabel('Data', fontsize=8)
     ax.set_ylabel('Temp [*C]', fontsize=8)
     ax.tick_params(axis='x', labelrotation = 45)
+
 def plotPrint():
     linreg()
 
@@ -262,9 +265,10 @@ try:
     czas_minuty = int((date2 - date1).total_seconds()/60)
     czas_sekundy = int((date2 - date1).total_seconds()%60)
     czas_ms = int((date2 - date1).microseconds)%(10^6)
-    timer = [['', 'Minutes', 'Seconds', 'Millisecond'], ["Calculation time", czas_minuty, czas_sekundy, czas_ms]]
+    timer = [['', 'Minutes', 'Seconds', 'Millisecond', " "], ["Calculation time", czas_minuty, czas_sekundy, czas_ms, int((date2 - date1).microseconds)]]
     print(tabulate(timer, headers='firstrow', tablefmt='fancy_grid'))
     plotPrint()
+
 
 except ValueError:
     print("Crash")
