@@ -89,4 +89,4 @@ try:
     SQLbase.insert(Stats2, data, "Hours")
 
 except KeyboardInterrupt:
-    print("UPS!")    
+    print("UPS!")   
