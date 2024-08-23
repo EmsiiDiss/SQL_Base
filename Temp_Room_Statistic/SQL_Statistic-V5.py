@@ -5,6 +5,7 @@
 import sqlite3, shutil, datetime, traceback, os
 import numpy as np
 import pandas as pd
+import threading
 
 # from tabulate import tabulate
 import matplotlib.pyplot as plt
@@ -18,6 +19,18 @@ class Datas:
         self.temp_avr = temp_avr
         self.temp_min = temp_min
         self.temp_max = temp_max
+
+class thread:
+    def Table_Maker_thread(placeBase, data, keyType, targetTable):
+        t_calc = threading.Thread(target=operation.calculatio, args=(placeBase, data, keyType, targetTable,))
+        t_calc.start()
+        t_calc.join()
+
+class operation:
+    def calculatio(placeBase, data, keyType, targetTable):
+        date_and_time =  dictionery.for_all(data, keyType)
+        date_and_time =  calc.date_and_time(date_and_time)
+        SQLbase.insert(placeBase, date_and_time, targetTable)
 
 class dictionery:
     def for_all(base, keyType="date", target='temperature'):
@@ -201,7 +214,6 @@ class SQLbase:
         connect.commit()
         connect.close()
 
-
 class plots:
     def plot_trend(x_num, xd):
         return np.polyfit(x_num, xd, 1)
@@ -226,8 +238,7 @@ class plots:
                 ax.tick_params(axis='x', labelrotation = 45)
 
                 plt.draw()
-
-         
+  
 try:
     Heat = "C:\GitHUB\SQL_Base\Temp_Room_Statistic\Heat.db"
     Stats2 = "C:\GitHUB\SQL_Base\Temp_Room_Statistic\Stats2.db"
@@ -246,16 +257,16 @@ try:
     #     ) 
 #/\ NOT USED    
 
-    date_and_time =  dictionery.for_all(data, keyType="datetime")
-    date_and_time =  calc.date_and_time(date_and_time)
-    SQLbase.insert(Stats2, date_and_time, "Hours")
+    thread.Table_Maker_thread(Stats2, data, "datetime", "Hours")
+    thread.Table_Maker_thread(Stats2, data, "date", "Days")
 
-    date_data   =   dictionery.for_all(data, keyType="date")
-    date_data   =   calc.date(date_data)
-    SQLbase.insert(Stats2, date_data, "Days")
+    # date_and_time =  dictionery.for_all(data, keyType="datetime")
+    # date_and_time =  calc.date_and_time(date_and_time)
+    # SQLbase.insert(Stats2, date_and_time, "Hours")
 
-    # date_data.reset_index(inplace=True)
-    # date_data.rename(columns={'index': 'Date'}, inplace=True)
+    # date_data     =   dictionery.for_all(data, keyType="date")
+    # date_data     =   calc.date(date_data)
+    # SQLbase.insert(Stats2, date_data, "Days")
 
     avrg           =   SQLbase.take_Hours(Stats2, "Hours")
     average_day    =   calc.average_all(avrg)
