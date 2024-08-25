@@ -33,10 +33,10 @@ class operation:
         SQLbase.insert(placeBase, date_and_time, targetTable)
 
 class dictionery:
-    def for_all(base, keyType="date", target='temperature'):
+    def for_all(base, keyType="date", target='temp_dot'):
         temperatures_by_date_hour = {}
         for _, row in base.iterrows():
-            date = row['date']
+            date = row['data']
             if keyType == "datetime":
                 time = row['time']
                 key = (date, time)
@@ -49,44 +49,51 @@ class dictionery:
         return temperatures_by_date_hour
 
 class calc:
+    def averge(temperatures_by_date_hour):
+        data = []
+        for key, temps in temperatures_by_date_hour.items():
+            date = key
+            avg_temp = round(np.mean(temps), 2)
+            data.append((date, avg_temp))
+        data_array = np.array(data, dtype=[
+            ('date', 'datetime64[D]'), 
+            ('Average', 'float64')
+            ])
+        return data_array   
+
     def date_and_time(temperatures_by_date_hour):
         data = []
         for key, temps in temperatures_by_date_hour.items():
-            date, hour = key
             avg_temp = round(np.mean(temps),2)
             min_temp = np.min(temps)
             max_temp = np.max(temps)
-            data.append((date, hour + ":00:00", avg_temp, min_temp, max_temp))
-        data_array = np.array(data, dtype=[
-            ('date', 'U10'), 
-            ('hour + ":00:00"', 'U10'), 
-            ('avg_temp', 'float64'), 
-            ('min_temp', 'float64'), 
-            ('max_temp', 'float64')
-            ])
-        return data_array
+            try:
+                date, hour = key
+                data.append((date, hour + ":00:00", avg_temp, min_temp, max_temp))
+                columns = [
+                    ('date', 'U10'), 
+                    ('hour + ":00:00"', 'U10'), 
+                    ('avg_temp', 'float64'), 
+                    ('min_temp', 'float64'), 
+                    ('max_temp', 'float64')
+                ]
+            except:
+                date = key
+                data.append((date, avg_temp, min_temp, max_temp))
+                columns = [
+                    ('date', 'U10'), 
+                    ('avg_temp', 'float64'), 
+                    ('min_temp', 'float64'), 
+                    ('max_temp', 'float64')
+                ]        
         
-    def date(temperatures_by_date_hour):
-        data = []
-        for key, temps in temperatures_by_date_hour.items():
-            date = key[0]
-            avg_temp = round(np.mean(temps), 2)
-            min_temp = np.min(temps)
-            max_temp = np.max(temps)
-            data.append((date, avg_temp, min_temp, max_temp))
-        data_array = np.array(data, dtype=[
-            ('date', 'U10'), 
-            ('avg_temp', 'float64'), 
-            ('min_temp', 'float64'), 
-            ('max_temp', 'float64')
-            ])
-        return data_array       
+        data_array = np.array(data, dtype=columns)
+        return data_array
 
-##\/ This is process 
     def average_all(data):
-        avrg_averge =   dictionery.for_all(data, target='temp_average')
-        avrg_min    =   dictionery.for_all(data, target='temp_min')
-        avrg_max    =   dictionery.for_all(data, target='temp_max')
+        avrg_averge =   dictionery.for_all(data, target='TEMP_AVERAGE')
+        avrg_min    =   dictionery.for_all(data, target='TEMP_MIN')
+        avrg_max    =   dictionery.for_all(data, target='TEMP_MAX')
 
         avrg_averge =   calc.averge(avrg_averge)
         avrg_min    =   calc.averge(avrg_min)
@@ -103,23 +110,10 @@ class calc:
             "TEMP_day_MAX": avrg_max
             })
 
-
         average_day.reset_index(inplace=True)
         average_day.rename(columns={'index': 'Date'}, inplace=True)
 
         return average_day
-
-    def averge(temperatures_by_date_hour):
-        data = []
-        for key, temps in temperatures_by_date_hour.items():
-            date = key
-            avg_temp = round(np.mean(temps), 2)
-            data.append((date, avg_temp))
-        data_array = np.array(data, dtype=[
-            ('date', 'datetime64[D]'), 
-            ('Average', 'float64')
-            ])
-        return data_array   
 
 class SQLbase:
     def create(place):
@@ -132,8 +126,8 @@ class SQLbase:
         connect.execute("""
             CREATE TABLE IF NOT EXISTS Hours (
                 id INTEGER PRIMARY KEY ASC,
-                DATA varchar(250) NOT NULL,
-                TIME varchar(250) NOT NULL,
+                data varchar(250) NOT NULL,
+                time varchar(250) NOT NULL,
                 TEMP_AVERAGE varchar(250) NOT NULL,
                 TEMP_MIN varchar(250) NOT NULL,
                 TEMP_MAX varchar(250) NOT NULL
@@ -142,7 +136,7 @@ class SQLbase:
         connect.execute("""
             CREATE TABLE IF NOT EXISTS Days (
                 id INTEGER PRIMARY KEY ASC,
-                DATA varchar(250) NOT NULL,
+                data varchar(250) NOT NULL,
                 TEMP_AVERAGE varchar(250) NOT NULL,
                 TEMP_MIN varchar(250) NOT NULL,
                 TEMP_MAX varchar(250) NOT NULL
@@ -151,7 +145,7 @@ class SQLbase:
         connect.execute("""
             CREATE TABLE IF NOT EXISTS Average (
                 id INTEGER PRIMARY KEY ASC,
-                DATA varchar(250) NOT NULL,
+                data varchar(250) NOT NULL,
                 TEMP_day_AVERAGE varchar(250) NOT NULL,
                 TEMP_day_MIN varchar(250) NOT NULL,
                 TEMP_day_MAX varchar(250) NOT NULL
@@ -192,11 +186,36 @@ class SQLbase:
         connect.close()
         return base
 
+    def take(file, table):
+        connect = SQLbase.connect(file)
+        cursor = connect.cursor()
+        string = "SELECT * FROM " + table
+        cursor.execute(string)
+        data = cursor.fetchall()
+        columns = [description[0] for description in cursor.description]
+        column_name = SQLbase.columns_names_to_np(columns)
+        column_name = np.array(data, dtype=column_name)
+        base = pd.DataFrame(column_name, columns=columns)
+        connect.close()
+        
+        return base
+    
+    def columns_names_to_np(columns):
+        values_name = [("id", "U10"), ('data', 'U10')]
+        # Początkowa tablica NumPy z krotkami
+        # Sprawdzenie, czy "TIME" znajduje się w liście kolumn
+        for value in columns[2:]:
+            if value == 'temp_comma' or value == 'jednostka' or value == 'TIME' or value == 'time':
+                values_name.append((value, 'U2'))
+            else:
+                values_name.append((value, 'float64'))
+        return values_name
+
     def insert(place, data, where ):
-        try:    
+        try:
             data = [
                 (
-                    timestamp.strftime('%Y-%m-%d %H:%M:%S') if isinstance(timestamp, pd.Timestamp) else timestamp,
+                    timestamp.strftime('%Y-%m-%d') if isinstance(timestamp, pd.Timestamp) else timestamp,
                     temp_day_average,
                     temp_day_min,
                     temp_day_max
@@ -205,7 +224,6 @@ class SQLbase:
             ]
         except:
             pass      
-        
         count_data_to_insert = len(data[0])
         connect = SQLbase.connect(place)
         count_data_to_insert = count_data_to_insert * ",?"
@@ -247,7 +265,7 @@ try:
 
     date1       =    datetime.datetime.now()
     
-    data        =    SQLbase.take_full(Heat)
+    data        =    SQLbase.take(Heat, "Temperatura")
 
 #\/ NOT USED
     # Heat        =    Datas( 
@@ -259,16 +277,7 @@ try:
 
     thread.Table_Maker_thread(Stats2, data, "datetime", "Hours")
     thread.Table_Maker_thread(Stats2, data, "date", "Days")
-
-    # date_and_time =  dictionery.for_all(data, keyType="datetime")
-    # date_and_time =  calc.date_and_time(date_and_time)
-    # SQLbase.insert(Stats2, date_and_time, "Hours")
-
-    # date_data     =   dictionery.for_all(data, keyType="date")
-    # date_data     =   calc.date(date_data)
-    # SQLbase.insert(Stats2, date_data, "Days")
-
-    avrg           =   SQLbase.take_Hours(Stats2, "Hours")
+    avrg           =   SQLbase.take(Stats2, "Hours", )
     average_day    =   calc.average_all(avrg)
     data_to_insert =   average_day.values.tolist()
     SQLbase.insert(Stats2, data_to_insert, "Average")
