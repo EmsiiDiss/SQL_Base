@@ -1,6 +1,6 @@
-# Author: Emsii
-# Date: 05.08.204
-# https://github.com/EmsiiDiss
+# Author: MrEmsii
+# Date: 05.08.2024
+# https://github.com/MrEmsii
 
 import sqlite3, shutil, datetime, traceback, os
 import numpy as np
